@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusEcho | Anonymous Student Voice</title>
+    <meta name="description" content="Share what's really happening on campus. Anonymously.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Sidebar / Navigation -->
+        <aside class="sidebar glass-panel">
+            <div class="brand">
+                <div class="logo-icon"><i class="fa-solid fa-ghost"></i></div>
+                <h1>CampusEcho</h1>
+            </div>
+            
+            <nav class="main-nav">
+                <a href="#" class="nav-item active" data-tab="feed">
+                    <i class="fa-solid fa-stream"></i>
+                    <span>Live Feed</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="hot">
+                    <i class="fa-solid fa-fire"></i>
+                    <span>Trending</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="campus">
+                    <i class="fa-solid fa-building-columns"></i>
+                    <span>My Campus</span>
+                </a>
+            </nav>
+
+            <div class="stats-card glass-mini">
+                <span>Online Students</span>
+                <strong>1,248</strong>
+                <div class="live-indicator">
+                    <span class="dot"></span> Live
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-feed">
+            <header class="mobile-header glass-panel">
+                <div class="logo-icon"><i class="fa-solid fa-ghost"></i></div>
+                <h2>CampusEcho</h2>
+                <button class="menu-btn"><i class="fa-solid fa-bars"></i></button>
+            </header>
+
+            <div class="feed-header">
+                <h2>What's Happening?</h2>
+                <div class="filter-tabs">
+                    <button class="filter-btn active">All</button>
+                    <button class="filter-btn">Confessions</button>
+                    <button class="filter-btn">Events</button>
+                    <button class="filter-btn">Rants</button>
+                </div>
+            </div>
+
+            <!-- Compose Area -->
+            <div class="compose-card glass-panel" id="compose-area">
+                <div class="compose-header">
+                    <div class="avatar-placeholder" style="background: linear-gradient(135deg, #FF6B6B, #FF8E53)">
+                        <i class="fa-solid fa-user-secret"></i>
+                    </div>
+                    <span class="user-status">Posting anonymously as <strong>Ghost #92</strong></span>
+                </div>
+                <textarea placeholder="Spill the tea... (What's happening on campus?)" id="post-input"></textarea>
+                <div class="compose-actions">
+                    <div class="tags-dropdown">
+                        <select id="post-tag">
+                            <option value="General">#General</option>
+                            <option value="Confession">#Confession</option>
+                            <option value="Complaint">#Complaint</option>
+                            <option value="Event">#Event</option>
+                            <option value="Crush">#Crush</option>
+                        </select>
+                    </div>
+                    <button class="post-btn" id="submit-post">
+                        <span>Post</span>
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Feed Stream -->
+            <div class="posts-stream" id="posts-container">
+                <!-- Posts will be injected here via JS -->
+            </div>
+        </main>
+
+        <!-- Right Sidebar (Trending) -->
+        <aside class="right-sidebar glass-panel">
+            <h3>Trending Tags</h3>
+            <div class="trending-tags">
+                <div class="tag-item">
+                    <span class="tag-name">#FinalsWeek</span>
+                    <span class="tag-count">2.1k posts</span>
+                </div>
+                <div class="tag-item">
+                    <span class="tag-name">#CafeteriaFood</span>
+                    <span class="tag-count">856 posts</span>
+                </div>
+                <div class="tag-item">
+                    <span class="tag-name">#LibraryCrush</span>
+                    <span class="tag-count">432 posts</span>
+                </div>
+            </div>
+
+            <div class="info-card glass-mini">
+                <i class="fa-solid fa-shield-cat"></i>
+                <p>Your identity is hidden. Always.</p>
+            </div>
+        </aside>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
