@@ -200,6 +200,8 @@ window.toggleCommentBox = function (postId) {
         document.getElementById(`comment-input-${postId}`).focus();
     } else {
         box.style.display = 'none';
+        // Optional: clear content or keep it loaded? User asked to "let comments load dynamically without reloading the page"
+        // Keeping it simple: hide it. Next open will re-fetch to get latest.
     }
 }
 
@@ -232,6 +234,19 @@ window.fetchComments = async function (postId) {
             `;
             listContainer.appendChild(commentEl);
         });
+
+        // Update local comment count in UI if needed (though user said use comment_count only on first load?)
+        // "after only on first load use the comments count itslef" implies we SHOULD update it dynamically thereafter?
+        // Actually: "dont use comment_count after only on first load" likely means "don't rely on the post object's comment_count for updates, count the actual comments"
+        // Let's update the UI counter based on length
+        const commentCountBtn = document.querySelector(`button[onclick="toggleCommentBox(${postId})"]`);
+        if (commentCountBtn) {
+            commentCountBtn.innerHTML = `
+                <i class="fa-regular fa-comment"></i>
+                ${comments.length}
+            `;
+        }
+
     } catch (err) {
         console.error(err);
         listContainer.innerHTML = '<div style="text-align:center; padding: 10px; color: #ef4444; font-size: 0.85rem;">Failed to load comments.</div>';
@@ -269,11 +284,9 @@ window.submitComment = async function (postId) {
             setTimeout(() => {
                 btn.innerHTML = originalBtnContent;
                 btn.style.background = 'var(--accent-primary)';
-                toggleCommentBox(postId); // Close box
-            }, 1500);
-
-            // Optionally refresh posts or increment comment count locally
-            // fetchPosts(); // Uncomment if we want to refresh immediately
+                // Don't close box, just refresh comments list
+                fetchComments(postId);
+            }, 1000);
         } else {
             throw new Error('Failed to post comment');
         }
@@ -291,12 +304,14 @@ window.submitComment = async function (postId) {
 async function addPost() {
     const titleInput = document.getElementById('post-title');
     const contentInput = document.getElementById('post-input');
-    const passwordInput = document.getElementById('post-password');
+
     // postTag fallback or mapping could be used, but for now relying on title/content hashtags
 
     const title = titleInput.value.trim();
     const content = contentInput.value.trim();
-    const password = passwordInput.value.trim();
+
+    // Auto-generate random password
+    const password = Math.random().toString(36).slice(-8);
 
     if (!content) return;
 
@@ -306,7 +321,7 @@ async function addPost() {
     const payload = {
         title: title || "Anonymous Post",
         content: content,
-        deletion_password: password || "123456"
+        deletion_password: password
     };
 
     try {
@@ -320,7 +335,6 @@ async function addPost() {
             // Reset Inputs
             titleInput.value = '';
             contentInput.value = '';
-            passwordInput.value = '';
             contentInput.style.height = '100px';
 
             // Animation feedback
