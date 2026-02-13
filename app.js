@@ -1,46 +1,50 @@
 
-// Seed Data to make the app look alive initially
-const INITIAL_POSTS = [
-    {
-        id: 1,
-        content: "Honestly, the coffee at the library vending machine tastes like battery acid today. Stay safe y'all. ☕💀 #CafeteriaFood",
-        tag: "Complaint",
-        timestamp: Date.now() - 1000 * 60 * 15, // 15 mins ago
-        votes: 42,
-        comments: 5,
-        color: "#ef4444" // Red for complaint
-    },
-    {
-        id: 2,
-        content: "To the guy playing piano in the student center right now... you're actually amazing. Please keep playing Interstellar. 🎹✨ #LibraryCrush",
-        tag: "Crush",
-        timestamp: Date.now() - 1000 * 60 * 60 * 2, // 2 hours ago
-        votes: 128,
-        comments: 12,
-        color: "#ec4899" // Pink for crush
-    },
-    {
-        id: 3,
-        content: "Just submitted my final thesis. I don't know what to do with my hands anymore. Is this what freedom feels like? 🎓 #FinalsWeek",
-        tag: "General",
-        timestamp: Date.now() - 1000 * 60 * 60 * 5, // 5 hours ago
-        votes: 356,
-        comments: 45,
-        color: "#6366f1" // Indigo for general
-    },
-    {
-        id: 4,
-        content: "Does anyone know if the gym is open 24/7 during finals week? Need to stress-lift at 3AM. #FinalsWeek",
-        tag: "Question",
-        timestamp: Date.now() - 1000 * 60 * 60 * 12, // 12 hours ago
-        votes: 15,
-        comments: 3,
-        color: "#f59e0b" // Amber for question
-    }
-];
-
 // State Management
-let posts = JSON.parse(localStorage.getItem('campusEchoPosts')) || INITIAL_POSTS;
+let posts = [];
+
+// Helper: Extract Tag
+function extractTag(text) {
+    if (!text) return null;
+    const match = text.match(/#(\w+)/);
+    return match ? match[1] : null;
+}
+
+// Fetch Posts from API
+async function fetchPosts() {
+    try {
+        const response = await fetch('http://anonspace.ddns.net/posts');
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+
+        // Transform data to match app structure
+        posts = data.map(post => {
+            const tag = extractTag(post.content) || extractTag(post.title) || "General";
+            return {
+                id: post.id,
+                content: post.content,
+                title: post.title,
+                tag: tag,
+                timestamp: new Date(post.created_at).getTime(),
+                votes: 0,
+                comments: 0,
+                color: getTagColor(tag)
+            };
+        });
+
+        // Restore local votes overlay
+        const userVotes = JSON.parse(localStorage.getItem('campusEchoUserVotes')) || {};
+        posts.forEach(p => {
+            if (userVotes[p.id]) {
+                p.votes += userVotes[p.id];
+            }
+        });
+
+        renderPosts();
+        updateTrendingTags();
+    } catch (error) {
+        console.error('Error fetching posts:', error);
+    }
+}
 
 // DOM Elements
 const postsContainer = document.getElementById('posts-container');
@@ -148,6 +152,7 @@ function renderPosts() {
                 <span class="post-tag" style="color: ${getTagColor(post.tag)}; background: ${getTagColor(post.tag)}15">#${post.tag}</span>
                 <span class="post-time">${timeAgo(post.timestamp)}</span>
             </div>
+            ${post.title ? `<h3 style="margin-bottom: 8px; font-size: 1.1rem; color: #fff;">${post.title}</h3>` : ''}
             <div class="post-content">
                 ${post.content}
             </div>
@@ -175,45 +180,67 @@ function renderPosts() {
 }
 
 // Add New Post
-function addPost() {
-    const content = postInput.value.trim();
+// Add New Post
+async function addPost() {
+    const titleInput = document.getElementById('post-title');
+    const contentInput = document.getElementById('post-input');
+    const passwordInput = document.getElementById('post-password');
+    // postTag fallback or mapping could be used, but for now relying on title/content hashtags
+
+    const title = titleInput.value.trim();
+    const content = contentInput.value.trim();
+    const password = passwordInput.value.trim();
+
     if (!content) return;
 
-    const newPost = {
-        id: Date.now(),
+    // Show loading state
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+
+    const payload = {
+        title: title || "Anonymous Post",
         content: content,
-        tag: postTag.value,
-        timestamp: Date.now(),
-        votes: 0,
-        comments: 0,
-        color: getTagColor(postTag.value)
+        deletion_password: password || "123456"
     };
 
-    posts.unshift(newPost); // Add to beginning
-    savePosts();
+    try {
+        const response = await fetch('http://anonspace.ddns.net/posts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
 
-    // Update trending tags if content contains hashtags
-    if (content.includes('#')) {
-        updateTrendingTags();
+        if (response.ok) {
+            // Reset Inputs
+            titleInput.value = '';
+            contentInput.value = '';
+            passwordInput.value = '';
+            contentInput.style.height = '100px';
+
+            // Animation feedback
+            submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Sent!';
+            submitBtn.style.background = '#10b981';
+
+            // Refresh posts
+            fetchPosts();
+
+            setTimeout(() => {
+                submitBtn.innerHTML = '<span>Post</span><i class="fa-solid fa-paper-plane"></i>';
+                submitBtn.style.background = 'var(--accent-primary)';
+            }, 2000);
+
+            // Reset filter to All to see new post
+            currentFilter = 'All';
+            updateFilterButtons();
+        } else {
+            throw new Error('Post failed');
+        }
+    } catch (err) {
+        console.error(err);
+        submitBtn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Error';
+        setTimeout(() => {
+            submitBtn.innerHTML = '<span>Post</span><i class="fa-solid fa-paper-plane"></i>';
+        }, 2000);
     }
-
-    // Reset filter to All to show new post
-    currentFilter = 'All';
-    updateFilterButtons();
-
-    renderPosts();
-
-    // Reset Input
-    postInput.value = '';
-    postInput.style.height = '100px'; // Reset height
-
-    // Animation feedback
-    submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Sent!';
-    submitBtn.style.background = '#10b981';
-    setTimeout(() => {
-        submitBtn.innerHTML = '<span>Post</span><i class="fa-solid fa-paper-plane"></i>';
-        submitBtn.style.background = 'var(--accent-primary)';
-    }, 2000);
 }
 
 // Voting Logic
@@ -328,8 +355,9 @@ function updateTrendingTags() {
 
 
 // Save to LocalStorage
+// Save to LocalStorage (Only for votes now)
 function savePosts() {
-    localStorage.setItem('campusEchoPosts', JSON.stringify(posts));
+    // No-op for posts, strictly vote saving is handled in vote() via campusEchoUserVotes
 }
 
 // Event Listeners
@@ -342,11 +370,11 @@ postInput.addEventListener('input', function () {
 });
 
 // Initial Render
-renderPosts();
-updateTrendingTags(); // Initialize trending tags
+fetchPosts();
+// updateTrendingTags is called inside fetchPosts
 
 // Refresh times every minute
-setInterval(renderPosts, 60000);
+setInterval(fetchPosts, 60000);
 
 // Mobile Interaction
 const menuBtn = document.querySelector('.menu-btn');

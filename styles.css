@@ -302,7 +302,8 @@ body {
     color: #a5b4fc;
 }
 
-textarea {
+textarea,
+.compose-input {
     width: 100%;
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--glass-border);
@@ -312,12 +313,20 @@ textarea {
     font-family: var(--font-body);
     font-size: 1rem;
     resize: none;
-    height: 100px;
     margin-bottom: 16px;
     transition: all 0.3s ease;
 }
 
-textarea:focus {
+textarea {
+    height: 100px;
+}
+
+.compose-input {
+    height: 50px;
+}
+
+textarea:focus,
+.compose-input:focus {
     outline: none;
     border-color: var(--accent-primary);
     background: rgba(0, 0, 0, 0.4);

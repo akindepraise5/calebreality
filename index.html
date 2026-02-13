@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,11 +9,14 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div class="background-blobs">
         <div class="blob blob-1"></div>
@@ -27,7 +31,7 @@
                 <div class="logo-icon"><i class="fa-solid fa-ghost"></i></div>
                 <h1>CampusEcho</h1>
             </div>
-            
+
             <nav class="main-nav">
                 <a href="#" class="nav-item active" data-tab="feed">
                     <i class="fa-solid fa-stream"></i>
@@ -78,7 +82,9 @@
                     </div>
                     <span class="user-status">Posting anonymously as <strong>Ghost #92</strong></span>
                 </div>
+                <input type="text" id="post-title" class="compose-input" placeholder="Give your post a title..." />
                 <textarea placeholder="Spill the tea... (What's happening on campus?)" id="post-input"></textarea>
+                <input type="password" id="post-password" class="compose-input" placeholder="Deletion password" />
                 <div class="compose-actions">
                     <div class="tags-dropdown">
                         <select id="post-tag">
@@ -129,4 +135,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>
