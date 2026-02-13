@@ -26,7 +26,7 @@ async function fetchPosts() {
                 tag: tag,
                 timestamp: new Date(post.created_at).getTime(),
                 votes: 0,
-                comments: 0,
+                comments: post.comment_count || 0,
                 color: getTagColor(tag)
             };
         });
@@ -166,7 +166,7 @@ function renderPosts() {
                         <i class="fa-solid fa-chevron-down"></i>
                     </button>
                 </div>
-                <button class="action-btn">
+                <button class="action-btn" onclick="toggleCommentBox(${post.id})">
                     <i class="fa-regular fa-comment"></i>
                     ${post.comments}
                 </button>
@@ -174,12 +174,119 @@ function renderPosts() {
                     <i class="fa-solid fa-share-nodes"></i>
                 </button>
             </div>
+            <!-- Comment Section (Hidden by default) -->
+            <div id="comment-box-${post.id}" class="comment-box" style="display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--glass-border);">
+                <div id="comments-list-${post.id}" style="margin-bottom: 12px; max-height: 200px; overflow-y: auto;">
+                    <!-- Comments loaded here -->
+                </div>
+                <div class="comment-input-wrapper" style="display: flex; gap: 8px;">
+                    <input type="text" id="comment-input-${post.id}" class="compose-input" style="height: 40px; margin-bottom: 0;" placeholder="Write a reply..." />
+                    <button class="post-btn" onclick="submitComment(${post.id})" style="padding: 0 16px; border-radius: 12px;">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
         `;
         postsContainer.appendChild(card);
     });
 }
 
-// Add New Post
+// Toggle Comment Box
+window.toggleCommentBox = function (postId) {
+    const box = document.getElementById(`comment-box-${postId}`);
+    if (box.style.display === 'none') {
+        box.style.display = 'block';
+        fetchComments(postId); // Load comments when opening
+        document.getElementById(`comment-input-${postId}`).focus();
+    } else {
+        box.style.display = 'none';
+    }
+}
+
+// Fetch Comments
+window.fetchComments = async function (postId) {
+    const listContainer = document.getElementById(`comments-list-${postId}`);
+    listContainer.innerHTML = '<div style="text-align:center; padding: 10px; color: var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> Loading comments...</div>';
+
+    try {
+        const response = await fetch(`http://anonspace.ddns.net/comments/post/${postId}`);
+        if (!response.ok) throw new Error('Failed to load comments');
+        const comments = await response.json();
+
+        listContainer.innerHTML = '';
+
+        if (comments.length === 0) {
+            listContainer.innerHTML = '<div style="text-align:center; padding: 10px; color: var(--text-secondary); font-size: 0.85rem;">No comments yet. Be the first!</div>';
+            return;
+        }
+
+        comments.forEach(comment => {
+            const commentEl = document.createElement('div');
+            commentEl.style.cssText = 'padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem;';
+            commentEl.innerHTML = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="font-weight: 600; color: var(--text-secondary); font-size: 0.8rem;">Anonymous</span>
+                    <span style="font-size: 0.75rem; color: var(--text-secondary);">${timeAgo(new Date(comment.created_at || Date.now()))}</span>
+                </div>
+                <div style="color: #e0e7ff;">${comment.content}</div>
+            `;
+            listContainer.appendChild(commentEl);
+        });
+    } catch (err) {
+        console.error(err);
+        listContainer.innerHTML = '<div style="text-align:center; padding: 10px; color: #ef4444; font-size: 0.85rem;">Failed to load comments.</div>';
+    }
+}
+
+// Submit Comment
+window.submitComment = async function (postId) {
+    const input = document.getElementById(`comment-input-${postId}`);
+    const content = input.value.trim();
+
+    if (!content) return;
+
+    // Visual feedback
+    const btn = input.nextElementSibling;
+    const originalBtnContent = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+    try {
+        const response = await fetch('http://anonspace.ddns.net/comments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                content: content,
+                post_id: postId
+            })
+        });
+
+        if (response.ok) {
+            // Success feedback
+            input.value = '';
+            btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+            btn.style.background = '#10b981';
+
+            setTimeout(() => {
+                btn.innerHTML = originalBtnContent;
+                btn.style.background = 'var(--accent-primary)';
+                toggleCommentBox(postId); // Close box
+            }, 1500);
+
+            // Optionally refresh posts or increment comment count locally
+            // fetchPosts(); // Uncomment if we want to refresh immediately
+        } else {
+            throw new Error('Failed to post comment');
+        }
+    } catch (err) {
+        console.error(err);
+        btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+        setTimeout(() => {
+            btn.innerHTML = originalBtnContent;
+        }, 2000);
+    }
+}
+
+
 // Add New Post
 async function addPost() {
     const titleInput = document.getElementById('post-title');
