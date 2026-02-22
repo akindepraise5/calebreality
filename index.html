@@ -15,6 +15,7 @@
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="skeleton.css">
 </head>
 
 <body>
@@ -94,6 +95,14 @@
                             <option value="Crush">#Crush</option>
                         </select>
                     </div>
+                    <button class="action-btn" id="add-image-btn" title="Add Images"
+                        style="margin-left: 12px; font-size: 1.2rem;">
+                        <i class="fa-regular fa-image"></i>
+                    </button>
+                    <input type="file" id="image-input" multiple accept="image/*" style="display: none;">
+                    <div id="image-preview-container"
+                        style="display: flex; gap: 8px; flex-wrap: wrap; margin-left: 12px; flex-grow: 1;"></div>
+
                     <button class="post-btn" id="submit-post">
                         <span>Post</span>
                         <i class="fa-solid fa-paper-plane"></i>

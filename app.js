@@ -12,13 +12,30 @@ function extractTag(text) {
 // Fetch Posts from API
 async function fetchPosts() {
     try {
-        const response = await fetch('http://anonspace.ddns.net/posts');
+        const response = await fetch('https://anonbackends.onrender.com/posts');
         if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
 
         // Transform data to match app structure
         posts = data.map(post => {
             const tag = extractTag(post.content) || extractTag(post.title) || "General";
+
+            // Process images
+            let processedImages = [];
+            if (post.post_images && Array.isArray(post.post_images)) {
+                processedImages = post.post_images.map(img => `https://devwole.space/${img.object_key}`);
+            } else if (post.images) {
+                processedImages = post.images;
+            }
+
+            // Process comments count
+            let commentCount = 0;
+            if (post.comments && Array.isArray(post.comments) && post.comments.length > 0) {
+                commentCount = post.comments[0].count;
+            } else if (typeof post.comment_count === 'number') {
+                commentCount = post.comment_count;
+            }
+
             return {
                 id: post.id,
                 content: post.content,
@@ -26,8 +43,10 @@ async function fetchPosts() {
                 tag: tag,
                 timestamp: new Date(post.created_at).getTime(),
                 votes: 0,
-                comments: post.comment_count || 0,
-                color: getTagColor(tag)
+                comments: commentCount,
+
+                color: getTagColor(tag),
+                images: processedImages
             };
         });
 
@@ -51,6 +70,9 @@ const postsContainer = document.getElementById('posts-container');
 const postInput = document.getElementById('post-input');
 const postTag = document.getElementById('post-tag');
 const submitBtn = document.getElementById('submit-post');
+const imageInput = document.getElementById('image-input');
+const addImageBtn = document.getElementById('add-image-btn');
+const imagePreview = document.getElementById('image-preview-container');
 const filterBtns = document.querySelectorAll('.filter-btn');
 const navItems = document.querySelectorAll('.nav-item');
 const trendingContainer = document.querySelector('.trending-tags');
@@ -156,6 +178,18 @@ function renderPosts() {
             <div class="post-content">
                 ${post.content}
             </div>
+            ${post.images && post.images.length > 0 ? `
+            <div class="post-images" style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 4px;">
+                ${post.images.map(img => `
+                    <div class="image-wrapper skeleton-loader" style="height: 200px; min-width: 150px; flex-shrink: 0; border-radius: 8px; overflow: hidden; position: relative;">
+                        <img src="${img}" 
+                             style="width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.5s ease;" 
+                             onload="this.style.opacity='1'; this.parentElement.classList.remove('skeleton-loader');"
+                             onerror="this.parentElement.style.display='none';"
+                             onclick="window.open(this.src, '_blank')">
+                    </div>`).join('')}
+            </div>
+            ` : ''}
             <div class="post-footer">
                 <div class="vote-controls">
                     <button class="vote-btn upvote ${voteStatus === 1 ? 'active' : ''}" onclick="vote(${post.id}, 1)">
@@ -211,7 +245,7 @@ window.fetchComments = async function (postId) {
     listContainer.innerHTML = '<div style="text-align:center; padding: 10px; color: var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> Loading comments...</div>';
 
     try {
-        const response = await fetch(`http://anonspace.ddns.net/comments/post/${postId}`);
+        const response = await fetch(`https://anonbackends.onrender.com/comments/post/${postId}`);
         if (!response.ok) throw new Error('Failed to load comments');
         const comments = await response.json();
 
@@ -266,7 +300,7 @@ window.submitComment = async function (postId) {
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
     try {
-        const response = await fetch('http://anonspace.ddns.net/comments', {
+        const response = await fetch('https://anonbackends.onrender.com/comments', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -309,23 +343,62 @@ async function addPost() {
 
     const title = titleInput.value.trim();
     const content = contentInput.value.trim();
+    const files = imageInput.files;
 
     // Auto-generate random password
     const password = Math.random().toString(36).slice(-8);
 
-    if (!content) return;
+    if (!content && files.length === 0) return;
 
     // Show loading state
     submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
 
+    // Upload images first if any
+    let imageKeys = [];
+    if (files.length > 0) {
+        try {
+            const uploadRes = await fetch(`https://anonbackends.onrender.com/posts/upload/${files.length}`);
+            if (!uploadRes.ok) throw new Error('Failed to get upload URLs');
+            const uploadUrls = await uploadRes.json();
+            const entries = Object.entries(uploadUrls);
+
+            // Upload files in parallel
+            const uploadPromises = Array.from(files).map((file, index) => {
+                const [key, url] = entries[index];
+                return fetch(url, {
+                    method: 'PUT',
+                    body: file,
+                    headers: {
+                        'Content-Type': file.type
+                    }
+                }).then(res => {
+                    if (res.ok) return key;
+                    throw new Error('Upload failed');
+                });
+            });
+
+            imageKeys = await Promise.all(uploadPromises);
+
+        } catch (err) {
+            console.error('Image upload failed:', err);
+            submitBtn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Upload Error';
+            setTimeout(() => {
+                submitBtn.innerHTML = '<span>Post</span><i class="fa-solid fa-paper-plane"></i>';
+                submitBtn.style.background = 'var(--accent-primary)';
+            }, 2000);
+            return; // Stop if image upload fails
+        }
+    }
+
     const payload = {
         title: title || "Anonymous Post",
         content: content,
-        deletion_password: password
+        deletion_password: password,
+        images: imageKeys
     };
 
     try {
-        const response = await fetch('http://anonspace.ddns.net/posts', {
+        const response = await fetch('https://anonbackends.onrender.com/posts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -336,6 +409,8 @@ async function addPost() {
             titleInput.value = '';
             contentInput.value = '';
             contentInput.style.height = '100px';
+            imageInput.value = ''; // Clear file input
+            imagePreview.innerHTML = ''; // Clear previews
 
             // Animation feedback
             submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Sent!';
@@ -480,6 +555,30 @@ function updateTrendingTags() {
 function savePosts() {
     // No-op for posts, strictly vote saving is handled in vote() via campusEchoUserVotes
 }
+
+// Image Upload Events
+addImageBtn.addEventListener('click', () => imageInput.click());
+
+imageInput.addEventListener('change', () => {
+    imagePreview.innerHTML = '';
+    const files = Array.from(imageInput.files);
+
+    if (files.length > 0) {
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const div = document.createElement('div');
+                div.style.cssText = 'position: relative; width: 60px; height: 60px; border-radius: 8px; overflow: hidden; border: 1px solid var(--glass-border);';
+                div.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                imagePreview.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+        addImageBtn.style.color = 'var(--accent-primary)';
+    } else {
+        addImageBtn.style.color = 'var(--text-secondary)';
+    }
+});
 
 // Event Listeners
 submitBtn.addEventListener('click', addPost);
